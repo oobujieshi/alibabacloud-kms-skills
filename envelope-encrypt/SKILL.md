@@ -1,68 +1,87 @@
 ---
 name: envelope-encrypt
-description: Alibaba Cloud KMS envelope encryption tool. Downloads the latest binary from GitHub Releases and executes it. No AKSK required - uses default credential chain. Encrypts data using GenerateDataKey + AES-256-GCM. Accepts --data (string) or --in-file (file/stdin), outputs to stdout by default.
+description: >
+  Encrypt data using Alibaba Cloud KMS envelope encryption (GenerateDataKey + AES-256-GCM).
+  Use when the user needs to encrypt files, strings, or secrets with KMS-managed keys.
+  Supports string input via --data, file input via --in-file, and stdout output.
+  Triggered by phrases like "encrypt with KMS", "envelope encrypt", "加密KMS", "信封加密".
 agent_created: true
 ---
 
 # Envelope Encrypt
 
-KMS envelope encryption via pre-built binary from [alibabacloud-kms-skills-cli](https://github.com/oobujieshi/alibabacloud-kms-skills-cli) releases.
+KMS envelope encryption that downloads a pre-built binary from GitHub Releases,
+caches it, then executes it. No AKSK needed — uses the default credential chain.
 
-## How It Works
+## How it works
 
-The wrapper script `scripts/run.sh` auto-detects the platform, downloads the
-correct binary from GitHub Releases (cached to `~/.cache/`), then executes it.
+Run `scripts/run.sh` to execute encryption. The wrapper:
 
-To invoke encryption, run:
+1. Detects the current platform (linux/darwin/windows + amd64/arm64)
+2. Downloads the matching binary from GitHub Releases if not cached  
+3. Caches it at `~/.cache/alibabacloud-kms-skills/`
+4. Runs it with the provided arguments
+
+The binary is built from source at `github.com/oobujieshi/alibabacloud-kms-skills-cli`
+by GitHub Actions for every release tag.
+
+## Usage
 
 ```bash
-bash scripts/run.sh encrypt --key-id <cmk-id> [flags...]
+bash scripts/run.sh encrypt [flags]
 ```
 
-## Command Reference
+### Required
+
+`--key-id` — KMS CMK ID or alias
+
+### Input (exactly one)
+
+`--data "hello world"` — encrypt a string directly
+`--in-file path/to/file` — encrypt a file, `-` for stdin
+
+### Output (optional)
+
+`--out-file path` — write ciphertext to file; omit for stdout
+
+### Optional
+
+`--encryption-context '{"app":"myapp"}'` — KMS encryption context (JSON)
+`--key-spec AES_128` — data key spec: `AES_256` (default) or `AES_128`
+`--number-of-bytes 16` — data key length, 1-1024 (default 32)
+
+### Examples
 
 ```bash
-envelope-encrypt encrypt [flags]
+# Encrypt a string, print to stdout
+bash scripts/run.sh encrypt --key-id <cmk-id> --data "secret message"
 
-Flags:
-  --key-id string           KMS CMK ID or alias (required)
-  --data string             Plaintext string to encrypt
-  --in-file string          Input file path, '-' for stdin
-  --out-file string         Output file path, stdout if omitted
-  --encryption-context string  JSON key-value pairs
-  --key-spec string         AES_256 or AES_128
-  --number-of-bytes int     Data key length in bytes (default 32)
-```
-
-## Usage Examples
-
-```bash
-# Encrypt a string - output to stdout
-bash scripts/run.sh encrypt --key-id <cmk-id> --data "secret"
-
-# Encrypt a file
+# Encrypt a file, write to output file
 bash scripts/run.sh encrypt --key-id <cmk-id> --in-file plain.txt --out-file encrypted.enc
 
-# With EncryptionContext
+# With encryption context
 bash scripts/run.sh encrypt --key-id <cmk-id> \
-    --encryption-context '{"app":"myapp"}' \
+    --encryption-context '{"stage":"prod","app":"billing"}' \
     --data "secret"
 ```
 
+## Output format
+
+Three lines, each base64-encoded:
+
+1. Encrypted data key (KMS CiphertextBlob)
+2. Nonce (12 bytes)
+3. Ciphertext (AES-256-GCM)
+
 ## Credentials
 
-No AKSK needed. Default credential chain:
-ENV vars -> `~/.aliyun/config.json` -> ECS RAM role
+No credentials needed in most environments. Resolution order:
 
-## Environment Variables
+- `REGION_ID` environment variable, or auto-detected from ECS metadata
+- Default credential chain: env vars → `~/.aliyun/config.json` → ECS RAM role
+- `ENDPOINT_TYPE=Vpc` (default) for intranet, `Public` for internet
 
-| Variable | Description |
-|----------|-------------|
-| `REGION_ID` | KMS region (auto from ECS metadata) |
-| `ENDPOINT_TYPE` | `Vpc` (default) or `Public` |
+## Decryption
 
-## Output Format
-
-3-line base64: encrypted_data_key / nonce / ciphertext
-
-Use `envelope-decrypt` to decrypt.
+Use the companion `envelope-decrypt` skill. If `--encryption-context` was
+specified during encryption, the same value must be provided during decryption.
