@@ -1,102 +1,102 @@
 ---
 name: envelope-encrypt
 description: >
-  Use Alibaba Cloud KMS to encrypt data via envelope encryption (GenerateDataKey + AES-256-GCM).
-  Trigger when the user wants to encrypt files, strings, plaintext, secrets, or configuration
-  with an Alibaba KMS customer master key. Covers 加密, 信封加密, KMS加密 in Chinese, and
-  "envelope encrypt", "encrypt with KMS key", "protect data with KMS" in English.
-  For decryption use envelope-decrypt instead. Not for key management, gpg, bcrypt, or AWS KMS.
+  Encrypt files, strings, or secrets using Alibaba Cloud KMS envelope encryption
+  (GenerateDataKey + AES-256-GCM). Use this skill whenever the user mentions
+  encrypting data with Alibaba Cloud KMS, KMS envelope encryption, or KMS key-based
+  encryption -- even if they don't use the exact phrase "envelope encrypt."
+  Covers Chinese phrases like KMS加密, 信封加密, 阿里云加密. For decryption,
+  use the envelope-decrypt skill. Not for AWS KMS, gpg, bcrypt, or key management.
 agent_created: true
 ---
 
 # Envelope Encrypt
 
-KMS envelope encryption that downloads a pre-built binary from GitHub Releases,
-caches it, then executes it. No AKSK needed — uses the default credential chain.
+Encrypt data using KMS envelope encryption. The skill downloads a pre-built CLI
+binary from GitHub Releases, caches it, and runs it with your parameters.
 
-## How it works
+## How to run
 
-Run `scripts/run.sh` to execute encryption. The wrapper:
-
-1. Detects the current platform (linux/darwin/windows + amd64/arm64)
-2. Downloads the matching binary from GitHub Releases if not cached  
-3. Caches it at `~/.cache/alibabacloud-kms-skills/`
-4. Runs it with the provided arguments
-
-The binary is built from source at `github.com/oobujieshi/alibabacloud-kms-skills-cli`
-by GitHub Actions for every release tag.
-
-## Usage
+Always use the wrapper script -- it handles platform detection and caching:
 
 ```bash
 bash scripts/run.sh encrypt [flags]
 ```
 
-### Required
+## Input
 
-`--key-id` — KMS CMK ID or alias
+Specify **exactly one** input source. If neither is provided, the tool exits
+with a clear error message asking for one.
 
-### Input (exactly one)
+`--data "value"` for string input. Prefer this for short secrets, API keys,
+passwords, and CI/CD variable values.
 
-`--data "hello world"` — encrypt a string directly
-`--in-file path/to/file` — encrypt a file, `-` for stdin
+`--in-file path` for file input. Use `-` to read from stdin. Prefer this for
+files larger than a few KB or when piping from another command.
 
-### Output (optional)
+## Output
 
-`--out-file path` — write ciphertext to file; omit for stdout
+By default, the result prints to stdout as three newline-separated base64 lines.
+Use `--out-file path` to write to a file instead. The format is:
 
-### Optional
-
-`--encryption-context '{"app":"myapp"}'` — KMS encryption context (JSON)
-`--key-spec AES_128` — data key spec: `AES_256` (default) or `AES_128`
-`--number-of-bytes 16` — data key length, 1-1024 (default 32)
-
-### Examples
-
-```bash
-# Encrypt a string, print to stdout
-bash scripts/run.sh encrypt --key-id <cmk-id> --data "secret message"
-
-# Encrypt a file, write to output file
-bash scripts/run.sh encrypt --key-id <cmk-id> --in-file plain.txt --out-file encrypted.enc
-
-# With encryption context
-bash scripts/run.sh encrypt --key-id <cmk-id> \
-    --encryption-context '{"stage":"prod","app":"billing"}' \
-    --data "secret"
+```
+<base64-encrypted-data-key>
+<base64-nonce>
+<base64-ciphertext>
 ```
 
-## Output format
+Each line must be valid base64. The encrypted data key (line 1) is the KMS
+CiphertextBlob -- it can only be decrypted by KMS using the same CMK.
 
-Three lines, each base64-encoded:
+## Required
 
-1. Encrypted data key (KMS CiphertextBlob)
-2. Nonce (12 bytes)
-3. Ciphertext (AES-256-GCM)
+`--key-id` -- the KMS CMK ID or alias. This is the key that protects the data key.
+
+## Optional
+
+`--encryption-context '{"key":"value"}'` -- JSON key-value pairs stored in KMS
+audit logs. If you use this during encryption, the exact same context must be
+provided during decryption, otherwise KMS rejects the request. Use meaningful
+keys like `{"app":"billing","env":"prod"}` to track which service encrypted the data.
+
+`--key-spec AES_128` -- data key algorithm. Either `AES_256` (default) or `AES_128`.
+When set, the key size is determined by the algorithm (32 or 16 bytes).
+
+`--number-of-bytes 16` -- explicit key length, 1-1024 bytes. This overrides
+`--key-spec` when both are set. Use this when you need a specific key size
+that doesn't match the standard algorithms.
+
+## Examples
+
+```bash
+# Encrypt a string, print result to terminal
+bash scripts/run.sh encrypt --key-id alias/my-key --data "my-secret-value"
+
+# Encrypt a file
+bash scripts/run.sh encrypt --key-id alias/my-key --in-file config.yaml --out-file config.yaml.enc
+
+# Encrypt with context tracking
+bash scripts/run.sh encrypt --key-id alias/my-key \
+    --encryption-context '{"tenant":"acme","stage":"production"}' \
+    --data "production-api-key"
+
+# Pipe from stdin
+echo "sensitive" | bash scripts/run.sh encrypt --key-id alias/my-key --in-file -
+```
+
+## After encryption
+
+Verify the output has exactly 3 lines and each is valid base64:
+
+```bash
+test $(wc -l < output.enc) -eq 3 && echo "format OK"
+```
+
+To decrypt, use the `envelope-decrypt` skill with the same key and,
+if applicable, the same `--encryption-context`.
 
 ## Credentials
 
-No credentials needed in most environments. Resolution order:
-
-- `REGION_ID` environment variable, or auto-detected from ECS metadata
-- Default credential chain: env vars → `~/.aliyun/config.json` → ECS RAM role
-- `ENDPOINT_TYPE=Vpc` (default) for intranet, `Public` for internet
-
-## Verifying encryption (roundtrip)
-
-Always verify the output is correct 3-line base64 format, then test decryption:
-```bash
-# Encrypt
-bash scripts/run.sh encrypt --key-id <cmk-id> --data "check" --out-file /tmp/test.enc
-
-# Verify format: exactly 3 lines, each valid base64
-test $(wc -l < /tmp/test.enc) -eq 3 && echo "format ok"
-
-# Decrypt to confirm roundtrip
-bash ../envelope-decrypt/scripts/run.sh decrypt --in-file /tmp/test.enc
-```
-
-## Decryption
-
-Use the companion `envelope-decrypt` skill. If `--encryption-context` was
-specified during encryption, the same value must be provided during decryption.
+No AKSK needed in most environments. The binary uses Alibaba Cloud's default
+credential chain. If you see credential errors, read `references/env_vars.md`
+for the full resolution order and troubleshooting.

@@ -4,36 +4,22 @@
     {
       "id": 1,
       "name": "decrypt-file-stdout",
-      "prompt": "Decrypt the file /tmp/secret.enc that was encrypted with KMS envelope encryption, output the plaintext to stdout",
-      "expected_output": "Original plaintext printed to stdout, KMS Decrypt API call succeeds",
+      "prompt": "I have an encrypted file at /tmp/secrets.yaml.enc that was encrypted with KMS envelope encryption. Can you decrypt it and show me the contents?",
+      "expected_output": "Plaintext contents of /tmp/secrets.yaml.enc printed to stdout.",
       "files": []
     },
     {
       "id": 2,
-      "name": "decrypt-string-input",
-      "prompt": "Decrypt this envelope ciphertext: <3-line base64 output from encrypt>",
-      "expected_output": "Original plaintext string recovered",
+      "name": "decrypt-with-context",
+      "prompt": "This file /tmp/prod-secret.enc was encrypted for the production environment. I need to decrypt it. The encryption context was {\"env\":\"production\"}.",
+      "expected_output": "Plaintext printed to stdout. Encryption context passed to decrypt.",
       "files": []
     },
     {
       "id": 3,
-      "name": "decrypt-with-context",
-      "prompt": "Decrypt /tmp/secret.enc that was encrypted with encryption context {\"app\":\"billing\"} using the same context",
-      "expected_output": "Plaintext recovered, EncryptionContext passed to KMS Decrypt API",
-      "files": []
-    },
-    {
-      "id": 4,
-      "name": "decrypt-stdin-stdout",
-      "prompt": "Read envelope ciphertext from stdin and output decrypted plaintext to stdout",
-      "expected_output": "Plaintext written to stdout",
-      "files": []
-    },
-    {
-      "id": 5,
-      "name": "decrypt-wrong-context-fails",
-      "prompt": "Try to decrypt /tmp/secret.enc with encryption context {\"app\":\"wrong\"} when it was encrypted with {\"app\":\"billing\"}",
-      "expected_output": "KMS Decrypt fails with mismatch error, no plaintext output",
+      "name": "decrypt-inline-string",
+      "prompt": "I have this encrypted string from our CI pipeline: 'CiQAK2h...\nMTIzND...\ncGF5bG9...'. Can you decrypt it back to the original value?",
+      "expected_output": "Original plaintext recovered from the 3-line base64 input.",
       "files": []
     }
   ]

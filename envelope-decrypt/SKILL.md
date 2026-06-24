@@ -1,78 +1,96 @@
 ---
 name: envelope-decrypt
 description: >
-  Use Alibaba Cloud KMS to decrypt data that was encrypted with envelope encryption
-  (KMS Decrypt + AES-256-GCM). Trigger when the user wants to decrypt envelope-encrypted
-  files, 3-line base64 ciphertext, or recover plaintext from KMS-protected data.
-  Covers 解密, 信封解密, KMS解密 in Chinese, and "envelope decrypt", "decrypt with KMS",
-  "recover KMS-encrypted data" in English. For encryption use envelope-encrypt instead.
-  Not for key management, gpg, RSA, TLS, or AWS KMS.
+  Decrypt data that was encrypted with Alibaba Cloud KMS envelope encryption
+  (KMS Decrypt + AES-256-GCM). Use this skill whenever the user mentions
+  decrypting KMS-encrypted data, envelope decryption, or recovering plaintext
+  from KMS-protected files -- even if they don't use the exact phrase
+  "envelope decrypt." Covers Chinese phrases like KMS解密, 信封解密, 阿里云解密.
+  For encryption, use the envelope-encrypt skill. Not for AWS KMS, gpg, RSA, or
+  TLS decryption.
 agent_created: true
 ---
 
 # Envelope Decrypt
 
-KMS envelope decryption that downloads a pre-built binary from GitHub Releases,
-caches it, then executes it. No AKSK needed — uses the default credential chain.
+Decrypt data that was encrypted with KMS envelope encryption. The skill downloads
+a pre-built CLI binary from GitHub Releases, caches it, and runs it with your parameters.
 
-## How it works
+## How to run
 
-Run `scripts/run.sh` to execute decryption. The wrapper:
-
-1. Detects the current platform (linux/darwin/windows + amd64/arm64)
-2. Downloads the matching binary from GitHub Releases if not cached
-3. Caches it at `~/.cache/alibabacloud-kms-skills/`
-4. Runs it with the provided arguments
-
-The binary is built from source at `github.com/oobujieshi/alibabacloud-kms-skills-cli`
-by GitHub Actions for every release tag.
-
-## Usage
+Always use the wrapper script:
 
 ```bash
 bash scripts/run.sh decrypt [flags]
 ```
 
-### Input (exactly one)
+## Input
 
-`--data "base64\nbase64\nbase64"` — decrypt a 3-line ciphertext string directly
-`--in-file path/to/encrypted.enc` — decrypt a file, `-` for stdin
+Specify **exactly one** input source. If neither is provided, the tool exits
+with a clear error message.
 
-### Output (optional)
+`--data "value"` for a 3-line base64 ciphertext string. Use this when you have
+the encrypted output inline or stored as a shell variable.
 
-`--out-file path` — write plaintext to file; omit for stdout
+`--in-file path` for a file containing the 3-line base64 ciphertext. Use `-` to
+read from stdin. Prefer this for files or when piping from another command.
 
-### Optional
+## Output
 
-`--encryption-context '{"app":"myapp"}'` — must match the value used during encryption
+By default, the plaintext prints to stdout. Use `--out-file path` to write to a
+file instead.
 
-### Examples
+## Optional
 
-```bash
-# Decrypt a file, print to stdout
-bash scripts/run.sh decrypt --in-file encrypted.enc
-
-# Decrypt a string
-bash scripts/run.sh decrypt --data "$(cat encrypted.enc)"
-
-# With encryption context (must match encryption)
-bash scripts/run.sh decrypt \
-    --encryption-context '{"stage":"prod"}' \
-    --in-file encrypted.enc
-```
+`--encryption-context '{"key":"value"}'` -- must **exactly match** the value
+used during encryption. If the context doesn't match, KMS rejects the decryption
+request. This is a security feature -- it prevents data encrypted in one context
+from being decrypted in another.
 
 ## Input format
 
-Expected 3-line base64 format produced by `envelope-encrypt`:
+The input must be exactly 3 lines, each base64-encoded, as produced by the
+`envelope-encrypt` skill:
 
-1. Encrypted data key (KMS CiphertextBlob)
-2. Nonce (12 bytes)
-3. Ciphertext (AES-256-GCM)
+```
+<base64-encrypted-data-key>
+<base64-nonce>
+<base64-ciphertext>
+```
+
+If the input has fewer or more than 3 lines, the tool exits with an error
+message describing the expected format.
+
+## Examples
+
+```bash
+# Decrypt a file, print to terminal
+bash scripts/run.sh decrypt --in-file config.yaml.enc
+
+# Decrypt with encryption context
+bash scripts/run.sh decrypt \
+    --encryption-context '{"tenant":"acme","stage":"production"}' \
+    --in-file config.yaml.enc
+
+# Decrypt inline string
+ENCRYPTED="$(cat config.yaml.enc)"
+bash scripts/run.sh decrypt --data "$ENCRYPTED"
+
+# Pipe from stdin, write to file
+cat config.yaml.enc | bash scripts/run.sh decrypt --in-file - --out-file config.yaml
+```
+
+## Verification
+
+Always verify the decrypted output is what you expect. If decryption fails with
+a KMS error, check:
+
+1. The `--encryption-context` matches the value used during encryption
+2. The CMK used for encryption still exists and is enabled
+3. The credentials have `kms:Decrypt` permission
 
 ## Credentials
 
-No credentials needed in most environments. Resolution order:
-
-- `REGION_ID` environment variable, or auto-detected from ECS metadata
-- Default credential chain: env vars → `~/.aliyun/config.json` → ECS RAM role
-- `ENDPOINT_TYPE=Vpc` (default) for intranet, `Public` for internet
+No AKSK needed in most environments. The binary uses Alibaba Cloud's default
+credential chain. If you see credential errors, read `references/env_vars.md`
+for the full resolution order and troubleshooting.

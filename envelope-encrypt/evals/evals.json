@@ -4,36 +4,22 @@
     {
       "id": 1,
       "name": "encrypt-string-stdout",
-      "prompt": "Encrypt the string 'hello world' using KMS key 7906979c-8e06-46a2-be2d-68e3ccbc****, output to stdout",
-      "expected_output": "Three lines of base64-encoded data: line1 is CiphertextBlob, line2 is 12-byte nonce, line3 is ciphertext",
+      "prompt": "I need to encrypt a secret string 'database-password-123' using our Alibaba Cloud KMS key. Can you do that?",
+      "expected_output": "Three lines of base64 output on stdout: encrypted data key, nonce, ciphertext. No file created.",
       "files": []
     },
     {
       "id": 2,
       "name": "encrypt-file-to-file",
-      "prompt": "Encrypt the file /tmp/secret.txt to /tmp/secret.enc using KMS key 7906979c-8e06-46a2-be2d-68e3ccbc****",
-      "expected_output": "File /tmp/secret.enc created with 3-line base64 envelope format",
+      "prompt": "Encrypt the file /tmp/secrets.yaml with KMS, save the encrypted output to /tmp/secrets.yaml.enc",
+      "expected_output": "File /tmp/secrets.yaml.enc created with exactly 3 lines of base64. Original file unchanged.",
       "files": []
     },
     {
       "id": 3,
       "name": "encrypt-with-context",
-      "prompt": "Encrypt the string 'sensitive data' using KMS key 7906979c-8e06-46a2-be2d-68e3ccbc**** with encryption context {\"app\":\"billing\",\"stage\":\"prod\"}",
-      "expected_output": "Three lines of base64-encoded data, EncryptionContext passed to KMS GenerateDataKey API",
-      "files": []
-    },
-    {
-      "id": 4,
-      "name": "encrypt-stdin-pipe",
-      "prompt": "Read from stdin and encrypt using KMS key 7906979c-8e06-46a2-be2d-68e3ccbc****, output to stdout",
-      "expected_output": "Three lines of base64-encoded envelope data read from stdin",
-      "files": []
-    },
-    {
-      "id": 5,
-      "name": "encrypt-roundtrip",
-      "prompt": "Encrypt the string 'roundtrip test message' using KMS key 7906979c-8e06-46a2-be2d-68e3ccbc****, then verify it can be decrypted back to the original string",
-      "expected_output": "Encrypted output is valid 3-line format, decrypt returns original plaintext",
+      "prompt": "We need to encrypt a database connection string 'postgres://user:pass@host/db' for the production environment, and we want to tag it so we can track it in KMS audit logs. Use the key alias prod-key.",
+      "expected_output": "Encryption with context like {\"env\":\"production\"}. 3-line base64 output.",
       "files": []
     }
   ]
