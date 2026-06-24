@@ -1,0 +1,26 @@
+{
+  "skill_name": "envelope-decrypt",
+  "queries": [
+    {"query": "decrypt this KMS-encrypted file", "should_trigger": true},
+    {"query": "解密这个信封加密的文件", "should_trigger": true},
+    {"query": "use KMS to recover the original plaintext from this envelope ciphertext", "should_trigger": true},
+    {"query": "这个是KMS信封加密后的密文，帮我解密", "should_trigger": true},
+    {"query": "KMS envelope decrypt stdin and output to stdout", "should_trigger": true},
+    {"query": "decrypt the data key with KMS and then AES-GCM decrypt locally", "should_trigger": true},
+    {"query": "需要解密之前用信封加密保护的数据", "should_trigger": true},
+    {"query": "envelope-decrypt this 3-line base64 ciphertext", "should_trigger": true},
+    {"query": "用KMS还原这个加密的密钥然后本地解密", "should_trigger": true},
+    {"query": "reverse the KMS envelope encryption on this file", "should_trigger": true},
+
+    {"query": "encrypt this file with KMS", "should_trigger": false},
+    {"query": "KMS 加密这个字符串", "should_trigger": false},
+    {"query": "use AWS KMS to decrypt this", "should_trigger": false},
+    {"query": "decrypt this gpg-encrypted file", "should_trigger": false},
+    {"query": "base64 decode this string", "should_trigger": false},
+    {"query": "查看KMS密钥的ARN", "should_trigger": false},
+    {"query": "create a new KMS secret", "should_trigger": false},
+    {"query": "rotate the KMS key", "should_trigger": false},
+    {"query": "解密这个用RSA加密的数据", "should_trigger": false},
+    {"query": "decrypt this TLS traffic capture", "should_trigger": false}
+  ]
+}

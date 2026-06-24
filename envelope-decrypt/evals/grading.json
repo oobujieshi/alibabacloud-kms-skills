@@ -1,0 +1,11 @@
+{
+  "skill_name": "envelope-decrypt",
+  "iteration": 1,
+  "grading": [
+    {"eval_id": 1, "passed": true, "text": "SKILL.md covers --in-file with stdout default output"},
+    {"eval_id": 2, "passed": true, "text": "SKILL.md documents --data for 3-line base64 string input"},
+    {"eval_id": 3, "passed": true, "text": "SKILL.md includes --encryption-context with 'must match' warning"},
+    {"eval_id": 4, "passed": true, "text": "SKILL.md shows stdin/stdout pipe example"},
+    {"eval_id": 5, "passed": true, "text": "SKILL.md explicitly states context must match encryption"}
+  ]
+}

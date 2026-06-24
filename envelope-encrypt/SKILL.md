@@ -1,10 +1,11 @@
 ---
 name: envelope-encrypt
 description: >
-  Encrypt data using Alibaba Cloud KMS envelope encryption (GenerateDataKey + AES-256-GCM).
-  Use when the user needs to encrypt files, strings, or secrets with KMS-managed keys.
-  Supports string input via --data, file input via --in-file, and stdout output.
-  Triggered by phrases like "encrypt with KMS", "envelope encrypt", "加密KMS", "信封加密".
+  Use Alibaba Cloud KMS to encrypt data via envelope encryption (GenerateDataKey + AES-256-GCM).
+  Trigger when the user wants to encrypt files, strings, plaintext, secrets, or configuration
+  with an Alibaba KMS customer master key. Covers 加密, 信封加密, KMS加密 in Chinese, and
+  "envelope encrypt", "encrypt with KMS key", "protect data with KMS" in English.
+  For decryption use envelope-decrypt instead. Not for key management, gpg, bcrypt, or AWS KMS.
 agent_created: true
 ---
 
@@ -80,6 +81,20 @@ No credentials needed in most environments. Resolution order:
 - `REGION_ID` environment variable, or auto-detected from ECS metadata
 - Default credential chain: env vars → `~/.aliyun/config.json` → ECS RAM role
 - `ENDPOINT_TYPE=Vpc` (default) for intranet, `Public` for internet
+
+## Verifying encryption (roundtrip)
+
+Always verify the output is correct 3-line base64 format, then test decryption:
+```bash
+# Encrypt
+bash scripts/run.sh encrypt --key-id <cmk-id> --data "check" --out-file /tmp/test.enc
+
+# Verify format: exactly 3 lines, each valid base64
+test $(wc -l < /tmp/test.enc) -eq 3 && echo "format ok"
+
+# Decrypt to confirm roundtrip
+bash ../envelope-decrypt/scripts/run.sh decrypt --in-file /tmp/test.enc
+```
 
 ## Decryption
 

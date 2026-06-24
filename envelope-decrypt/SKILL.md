@@ -1,10 +1,12 @@
 ---
 name: envelope-decrypt
 description: >
-  Decrypt data that was encrypted with KMS envelope encryption (Decrypt + AES-256-GCM).
-  Use when the user needs to decrypt files or strings produced by envelope-encrypt.
-  Supports string input via --data, file input via --in-file, and stdout output.
-  Triggered by phrases like "decrypt with KMS", "envelope decrypt", "解密KMS", "信封解密".
+  Use Alibaba Cloud KMS to decrypt data that was encrypted with envelope encryption
+  (KMS Decrypt + AES-256-GCM). Trigger when the user wants to decrypt envelope-encrypted
+  files, 3-line base64 ciphertext, or recover plaintext from KMS-protected data.
+  Covers 解密, 信封解密, KMS解密 in Chinese, and "envelope decrypt", "decrypt with KMS",
+  "recover KMS-encrypted data" in English. For encryption use envelope-encrypt instead.
+  Not for key management, gpg, RSA, TLS, or AWS KMS.
 agent_created: true
 ---
 

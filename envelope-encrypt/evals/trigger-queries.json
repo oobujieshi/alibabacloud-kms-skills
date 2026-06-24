@@ -1,0 +1,26 @@
+{
+  "skill_name": "envelope-encrypt",
+  "queries": [
+    {"query": "加密这个文件，用KMS", "should_trigger": true},
+    {"query": "encrypt this secret using envelope encryption", "should_trigger": true},
+    {"query": "我要对配置文件做信封加密之后再传输", "should_trigger": true},
+    {"query": "use KMS to protect this data before uploading to OSS", "should_trigger": true},
+    {"query": "用阿里云KMS帮我加密一段字符串", "should_trigger": true},
+    {"query": "envelope encrypt the string 'database password' with key alias prod-key", "should_trigger": true},
+    {"query": "这个敏感数据需要加密存储，密钥用KMS管", "should_trigger": true},
+    {"query": "generate a data key with KMS and encrypt this file locally", "should_trigger": true},
+    {"query": "帮我把这个文件里的内容用KMS信封加密", "should_trigger": true},
+    {"query": "KMS envelope encrypt stdin and output to stdout", "should_trigger": true},
+
+    {"query": "decrypt this KMS-encrypted file", "should_trigger": false},
+    {"query": "use AWS KMS to encrypt this", "should_trigger": false},
+    {"query": "create a new KMS key in the console", "should_trigger": false},
+    {"query": "base64 encode this string", "should_trigger": false},
+    {"query": "encrypt this password with bcrypt for my database", "should_trigger": false},
+    {"query": "帮我生成一个RSA密钥对", "should_trigger": false},
+    {"query": "查看KMS密钥的轮转状态", "should_trigger": false},
+    {"query": "hash this password with SHA-256", "should_trigger": false},
+    {"query": "encrypt this file with gpg", "should_trigger": false},
+    {"query": "KMS 解密这个文件", "should_trigger": false}
+  ]
+}
