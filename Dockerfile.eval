@@ -1,0 +1,21 @@
+FROM golang:1.22-alpine AS builder
+
+WORKDIR /build
+COPY envelope-encrypt/ /build/envelope-encrypt/
+COPY envelope-decrypt/ /build/envelope-decrypt/
+
+ENV GOPROXY=https://goproxy.cn,direct
+
+RUN cd /build/envelope-encrypt && go build -ldflags="-s -w" -o /usr/local/bin/envelope-encrypt .
+RUN cd /build/envelope-decrypt && go build -ldflags="-s -w" -o /usr/local/bin/envelope-decrypt .
+
+FROM alpine:3.20
+
+RUN apk add --no-cache bash curl jq
+
+COPY --from=builder /usr/local/bin/envelope-encrypt /usr/local/bin/
+COPY --from=builder /usr/local/bin/envelope-decrypt /usr/local/bin/
+COPY eval/ /eval/
+RUN chmod +x /usr/local/bin/envelope-encrypt /usr/local/bin/envelope-decrypt /eval/*.sh
+
+ENTRYPOINT ["/eval/run.sh"]
