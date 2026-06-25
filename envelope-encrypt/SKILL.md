@@ -1,13 +1,12 @@
 ---
 name: envelope-encrypt
 description: >
-  Use Alibaba Cloud KMS envelope encryption (GenerateDataKey + AES-256-GCM).
-  Trigger whenever the user needs to encrypt data with Alibaba KMS, protect
-  sensitive information before git commit, secure credentials for storage,
-  or safeguard config files before transfer. Works with "KMS encrypt," "信封加密,"
-  "KMS加密," "envelope encrypt," "保护敏感数据," "加密后提交," "encrypt before
-  pushing," "secure this secret." Not for decryption (use envelope-decrypt),
-  AWS KMS, gpg, bcrypt, or key creation.
+  Envelope encrypt data using KMS (GenerateDataKey + AES-256-GCM). Data stays
+  local -- KMS only manages the key, not the data. Trigger when the user wants
+  envelope encryption, 信封加密, or KMS信封加密. Also for: "protect before
+  git commit," "secure credentials," "encrypt config file," "safeguard data
+  before transfer." NOT KMS Encrypt API (sends data to KMS, 4KB limit).
+  Not for decryption, AWS KMS, gpg, or key management.
 agent_created: true
 ---
 

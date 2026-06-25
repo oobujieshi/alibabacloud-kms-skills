@@ -1,13 +1,12 @@
 ---
 name: envelope-decrypt
 description: >
-  Use Alibaba Cloud KMS to decrypt envelope-encrypted data (KMS Decrypt +
-  AES-256-GCM). Trigger whenever the user needs to recover plaintext from
-  KMS-encrypted files, restore protected configuration, decode sealed secrets
-  in CI/CD, or access encrypted credentials. Works with "KMS decrypt," "信封解密,"
-  "KMS解密," "envelope decrypt," "恢复加密文件," "decrypt sealed secret,"
-  "解码KMS密文." Not for encryption (use envelope-encrypt), AWS KMS, gpg,
-  RSA, or TLS.
+  Decrypt envelope-encrypted data (KMS Decrypt + AES-256-GCM). Data is
+  decrypted locally -- KMS only unwraps the key. Trigger when the user wants
+  envelope decryption, 信封解密, or KMS信封解密. Also for: "restore encrypted
+  config," "decode sealed secret," "recover plaintext." NOT KMS Decrypt API
+  (decrypts CiphertextBlob directly, different format). Not for encryption,
+  AWS KMS, gpg, or RSA.
 agent_created: true
 ---
 
