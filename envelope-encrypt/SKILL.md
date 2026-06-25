@@ -1,102 +1,86 @@
 ---
 name: envelope-encrypt
 description: >
-  Encrypt files, strings, or secrets using Alibaba Cloud KMS envelope encryption
-  (GenerateDataKey + AES-256-GCM). Use this skill whenever the user mentions
-  encrypting data with Alibaba Cloud KMS, KMS envelope encryption, or KMS key-based
-  encryption -- even if they don't use the exact phrase "envelope encrypt."
-  Covers Chinese phrases like KMS加密, 信封加密, 阿里云加密. For decryption,
-  use the envelope-decrypt skill. Not for AWS KMS, gpg, bcrypt, or key management.
+  Use Alibaba Cloud KMS envelope encryption (GenerateDataKey + AES-256-GCM).
+  Trigger whenever the user needs to encrypt data with Alibaba KMS, protect
+  sensitive information before git commit, secure credentials for storage,
+  or safeguard config files before transfer. Works with "KMS encrypt," "信封加密,"
+  "KMS加密," "envelope encrypt," "保护敏感数据," "加密后提交," "encrypt before
+  pushing," "secure this secret." Not for decryption (use envelope-decrypt),
+  AWS KMS, gpg, bcrypt, or key creation.
 agent_created: true
 ---
 
 # Envelope Encrypt
 
-Encrypt data using KMS envelope encryption. The skill downloads a pre-built CLI
-binary from GitHub Releases, caches it, and runs it with your parameters.
+Encrypt data with KMS envelope encryption. On first use, the wrapper script
+at `scripts/run.sh` downloads a pre-built binary and caches it at
+`~/.cache/alibabacloud-kms-skills/`. Subsequent runs use the cached binary.
 
-## How to run
-
-Always use the wrapper script -- it handles platform detection and caching:
+## Run
 
 ```bash
 bash scripts/run.sh encrypt [flags]
 ```
 
-## Input
+The script `scripts/run.sh` is in the same directory as this SKILL.md.
+If `run.sh` is missing, copy it from the skill's `scripts/` directory.
 
-Specify **exactly one** input source. If neither is provided, the tool exits
-with a clear error message asking for one.
+## Flags
 
-`--data "value"` for string input. Prefer this for short secrets, API keys,
-passwords, and CI/CD variable values.
+| Flag | Required | Description |
+|------|----------|-------------|
+| `--key-id` | Yes | KMS CMK ID or alias |
+| `--data` | One* | Plaintext string |
+| `--in-file` | One* | File path or `-` for stdin |
+| `--out-file` | No | Output file, stdout if omitted |
+| `--encryption-context` | No | JSON key-value pairs (audit trail, decryption enforces match) |
+| `--key-spec` | No | `AES_256` (default) or `AES_128` |
+| `--number-of-bytes` | No | Key length 1-1024, overrides `--key-spec` |
 
-`--in-file path` for file input. Use `-` to read from stdin. Prefer this for
-files larger than a few KB or when piping from another command.
+*Exactly one of `--data` or `--in-file` is required.
 
 ## Output
 
-By default, the result prints to stdout as three newline-separated base64 lines.
-Use `--out-file path` to write to a file instead. The format is:
+Three newline-separated base64 lines:
 
-```
-<base64-encrypted-data-key>
-<base64-nonce>
-<base64-ciphertext>
-```
+1. Encrypted data key (KMS CiphertextBlob)
+2. Nonce (12 bytes)
+3. Ciphertext (AES-256-GCM)
 
-Each line must be valid base64. The encrypted data key (line 1) is the KMS
-CiphertextBlob -- it can only be decrypted by KMS using the same CMK.
-
-## Required
-
-`--key-id` -- the KMS CMK ID or alias. This is the key that protects the data key.
-
-## Optional
-
-`--encryption-context '{"key":"value"}'` -- JSON key-value pairs stored in KMS
-audit logs. If you use this during encryption, the exact same context must be
-provided during decryption, otherwise KMS rejects the request. Use meaningful
-keys like `{"app":"billing","env":"prod"}` to track which service encrypted the data.
-
-`--key-spec AES_128` -- data key algorithm. Either `AES_256` (default) or `AES_128`.
-When set, the key size is determined by the algorithm (32 or 16 bytes).
-
-`--number-of-bytes 16` -- explicit key length, 1-1024 bytes. This overrides
-`--key-spec` when both are set. Use this when you need a specific key size
-that doesn't match the standard algorithms.
+Only the format is predictable; values change each run because data keys and
+nonces are random. To verify: `test $(wc -l < out.enc) -eq 3`.
 
 ## Examples
 
+Encrypt a secret string, output to stdout:
 ```bash
-# Encrypt a string, print result to terminal
-bash scripts/run.sh encrypt --key-id alias/my-key --data "my-secret-value"
+bash scripts/run.sh encrypt --key-id alias/my-key --data "api-key-abc123"
+```
 
-# Encrypt a file
-bash scripts/run.sh encrypt --key-id alias/my-key --in-file config.yaml --out-file config.yaml.enc
-
-# Encrypt with context tracking
+Encrypt a file with audit tagging:
+```bash
 bash scripts/run.sh encrypt --key-id alias/my-key \
-    --encryption-context '{"tenant":"acme","stage":"production"}' \
-    --data "production-api-key"
-
-# Pipe from stdin
-echo "sensitive" | bash scripts/run.sh encrypt --key-id alias/my-key --in-file -
+    --encryption-context '{"app":"billing","env":"prod"}' \
+    --in-file secrets.yaml --out-file secrets.yaml.enc
 ```
 
-## After encryption
-
-Verify the output has exactly 3 lines and each is valid base64:
-
+Encrypt stdin from a pipeline:
 ```bash
-test $(wc -l < output.enc) -eq 3 && echo "format OK"
+echo "password" | bash scripts/run.sh encrypt --key-id alias/my-key --in-file -
 ```
 
-To decrypt, use the `envelope-decrypt` skill with the same key and,
-if applicable, the same `--encryption-context`.
+## Troubleshooting
 
-## Credentials
+**Binary download fails** (`curl` or `wget` error):
+The script downloads from GitHub Releases. If blocked by firewall:
+- Set `HTTPS_PROXY` if behind a proxy
+- Manually download the binary from https://github.com/oobujieshi/alibabacloud-kms-skills-cli/releases
+  and place it at `~/.cache/alibabacloud-kms-skills/envelope-encrypt-{platform}`
 
-No AKSK needed in most environments. The binary uses Alibaba Cloud's default
-credential chain. If you see credential errors, read `references/env_vars.md`
-for the full resolution order and troubleshooting.
+**Credential or region errors**: Read `references/env_vars.md`.
+
+**"either --data or --in-file is required"**: You didn't specify what to encrypt.
+Add `--data "value"` or `--in-file path`.
+
+**"mutually exclusive"**: You passed both `--data` and `--in-file`. Choose one.
